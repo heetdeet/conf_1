@@ -1,0 +1,12 @@
+# Тестирование VFS
+conf-dump
+pwd
+ls /
+cd home
+ls
+cd user/documents
+ls
+cat file1.txt
+pwd
+cd /
+ls

@@ -1,0 +1,34 @@
+{
+  "home": {
+    "type": "directory",
+    "children": {
+      "user": {
+        "type": "directory", 
+        "children": {
+          "documents": {
+            "type": "directory",
+            "children": {
+              "file1.txt": {
+                "type": "file",
+                "content": "Файл в документах пользователя"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "etc": {
+    "type": "directory",
+    "children": {
+      "config.txt": {
+        "type": "file",
+        "content": "config_data"
+      }
+    }
+  },
+  "README.txt": {
+    "type": "file",
+    "content": "Простая тестовая VFS с полной структурой"
+  }
+}

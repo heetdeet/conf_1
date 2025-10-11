@@ -2,19 +2,28 @@ import os
 import getpass
 import socket
 from config import Config
+from vfs import VFS
 
 class Emulator:
     def __init__(self, config):
         self.config = config
         self.username = getpass.getuser()
         self.hostname = socket.gethostname()
-        self.prompt = f"{self.username}@{self.hostname}:~$ "
+        self.vfs = VFS()
+        self.update_prompt()
         self.commands = {
             'exit': self.cmd_exit,
             'ls': self.cmd_ls,
             'cd': self.cmd_cd,
             'conf-dump': self.cmd_conf_dump,
+            'pwd': self.cmd_pwd,
+            'cat': self.cmd_cat,
         }
+
+    def update_prompt(self):
+        #обновляет приглашение с текущим путем VFS
+        current_path = self.vfs.get_current_path()
+        self.prompt = f"{self.username}@{self.hostname}:{current_path}$ "
 
     def run(self):
         #запускает эмулятор
@@ -24,6 +33,18 @@ class Emulator:
         print("=====================================")
         print()
         
+        #загрузка VFS если указан путь
+        if self.config.vfs_path and os.path.exists(self.config.vfs_path):
+            try:
+                self.vfs.load_from_json(self.config.vfs_path)
+                print(f"VFS успешно загружена из {self.config.vfs_path}")
+            except Exception as e:
+                print(f"Ошибка загрузки VFS: {e}")
+        else:
+            print("VFS не загружена (путь не указан или файл не существует)")
+        
+        print()
+
         #выполнение стартового скрипта, если указан
         if self.config.script_path:
             self.execute_startup_script()
@@ -89,17 +110,65 @@ class Emulator:
                 break
 
     # команды
-    def cmd_exit(self, args_str):
+    def cmd_exit(self, args):
         print("До свидания!")
         exit(0)
         return True
 
-    def cmd_ls(self, args_str):
-        print(f"ls: {args_str}")
+    def cmd_ls(self, args):
+        path = ''.join(args) if args else '.'
+        items = self.vfs.list_directory(path)
+        if items is None:
+            print(f"ls: {path}: Нет такой директории")
+            return False
+        
+        for item in items:
+            print(item)
         return True
 
-    def cmd_cd(self, args_str):
-        print(f"cd: {args_str}")
+    def cmd_cd(self, args):
+        if not args:
+            path = '/'
+        else:
+            path = ''.join(args)
+        
+        if self.vfs.change_directory(path):
+            self.update_prompt()
+            return True
+        else:
+            print(f"cd: {path}: Нет такой директории")
+            return False
+        
+    def cmd_pwd(self, args):
+        print(self.vfs.get_current_path())
+        return True
+
+    def cmd_cat(self, args):
+        if not args:
+            print("cat: требуется аргумент - имя файла")
+            return False
+        
+        #объединяем все аргументы в одно имя файла
+        filename = ''.join(args)
+        
+        #получаем текущую директорию
+        current_dir = self.vfs.current_dir
+        
+        #ищем файл в текущей директории
+        if filename in current_dir.children:
+            node = current_dir.children[filename]
+        else:
+            #пробуем найти по абсолютному пути
+            node = self.vfs.find_node(filename)
+        
+        if not node:
+            print(f"cat: {filename}: Нет такого файла")
+            return False
+        if not node.is_file:
+            print(f"cat: {filename}: Это директория")
+            return False
+        
+        print(node.content)
         return True
 
     def cmd_conf_dump(self, args_str):

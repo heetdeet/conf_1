@@ -1,0 +1,6 @@
+#кастомный скрипт для тестирования
+conf-dump
+ls
+cd /test
+ls -la
+exit
